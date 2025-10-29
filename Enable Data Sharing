@@ -1,0 +1,85 @@
+USE ROLE ORGADMIN;
+
+SELECT SYSTEM$ENABLE_GLOBAL_DATA_SHARING_FOR_ACCOUNT('AUTO_DATA_UNLIMITED');
+
+
+SELECT SYSTEM$IS_GLOBAL_DATA_SHARING_ENABLED_FOR_ACCOUNT('AUTO_DATA_UNLIMITED');
+
+
+SELECT SYSTEM$ENABLE_GLOBAL_DATA_SHARING_FOR_ACCOUNT('ACME');
+
+SELECT SYSTEM$IS_GLOBAL_DATA_SHARING_ENABLED_FOR_ACCOUNT('ACME');
+
+
+/*
+Setup Replication to your Target Snowflake Account
+The following step is completed in the source account. To execute this script requires ORGADMIN permissions for the user which may require assistance from your organization/system administrator for Snowflake.
+
+ORGID and the TARGETACCOUNTID.
+
+-- SETUP ACCOUNT REPLCIATION TO TARGET ACCOUNT
+USE ROLE ORGADMIN;
+SELECT SYSTEM$GLOBAL_ACCOUNT_SET_PARAMETER('<ORGID>.<TARGETACCOUNTID>', 'ENABLE_ACCOUNT_DATABASE_REPLICATION', 'true');
+/*. ALSO, RESULT SHOULD BE:
+[ "SUCCESS" ]
+*/
+*/
+;
+
+
+USE ROLE ORGADMIN;
+
+SELECT SYSTEM$GLOBAL_ACCOUNT_SET_PARAMETER('TMUXWOQ.ACME','ENABLE_ACCOUNT_DATABASE_REPLICATION', 'true') ;
+
+
+/*
+More information and background on ORGADMIN
+
+To create a replication group and share data between your accounts, your Snowflake account needs to be enabled as an ORGADMIN account under your organization. This is not enabled by default when you add accounts to your orgnaization. If you need to enable this, the following code needs to be executed by your org admin:
+
+USE ROLE ORGADMIN;
+ALTER ACCOUNT <source account ID> SET IS_ORG_ADMIN = TRUE;
+*/
+
+--Account WK05276 already has ORGADMIN enabled.
+ALTER ACCOUNT ACME SET IS_ORG_ADMIN = TRUE;
+
+
+--GRANT CREATE SHARE ON ORGANIZATION TO ACCOUNT <account_name> Replace <account_name> with the full Snowflake account locator (e.g., myorg.us-east-1).
+
+GRANT CREATE SHARE ON ORGANIZATION TO ACCOUNT 'wk05276.us-central1'
+
+
+
+--error account doesnt exist
+SELECT SYSTEM$ENABLE_GLOBAL_DATA_SHARING_FOR_ACCOUNT('TMUXWOQ.ACME');
+
+
+
+SHOW GRANTS ON ORGANIZATION
+
+;
+--didnot work
+ALTER ACCOUNT ACME
+SET MANAGED ACCESS = TRUE;
+
+
+
+GRANT CREATE SHARE ON ORGANIZATION TO ACCOUNTADMIN
+
+
+
+
+SELECT CURRENT_ORGANIZATION_NAME() || '.' || CURRENT_ACCOUNT_NAME();
+
+
+Then, in the provider account as ACCOUNTADMIN
+
+If you want a custom role (besides ACCOUNTADMIN) to manage auto-fulfillment, grant:
+
+USE ROLE ACCOUNTADMIN;
+GRANT MANAGE LISTING AUTO FULFILLMENT ON ACCOUNT TO ROLE <your_role>;
+
+
+--(ACCOUNTADMIN already has the ability once the ORGADMIN step is done; this grant is for delegating to other roles.) 
+--Snowflake Documentation
