@@ -38,3 +38,7 @@ if ingredietns_List:
             st.success('Your Smoothie is ordered,'+name_on_order+'!', icon="✅")
         else:
             st.success('No items selected!', icon="✅")  
+
+import requests
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+st.text(smoothiefroot_response)
