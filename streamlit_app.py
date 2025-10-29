@@ -27,7 +27,7 @@ ingredietns_List=st.multiselect('Choose up to 5 ingredients:',my_dataframe,
                                max_selections=5)
 
 if ingredietns_List:
-    ingredients_string=' '
+    ingredients_string=''
     for each_fruit in ingredietns_List:
         ingredients_string+=each_fruit+' '
         search_on=pd_df.loc[pd_df['FRUIT_NAME']==each_fruit, 'SEARCH_ON'].iloc[0]
