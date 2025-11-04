@@ -1,0 +1,135 @@
+alter database GLOBAL_WEATHER__CLIMATE_DATA_FOR_BI rename to WEATHERSOURCE;
+
+
+select * from HISTORY_DAY ;
+
+select count(*) from HISTORY_DAY ;
+
+select distinct country from HISTORY_DAY ;
+
+
+--select * from HISTORY_DAY hd left  join FORECAST_DAY fd on hd.country=fd.country where fd.postal_code like '481%' or fd.postal_code like '482%'
+
+select * from HISTORY_DAY hd where hd.postal_code like '481%' or hd.postal_code like '482%' ;
+
+select distinct hd.postal_code from HISTORY_DAY hd where hd.postal_code like '481%' or hd.postal_code like '482%' ;
+
+create view  marketing.mailers.DETROIT_ZIPS as
+    select distinct hd.postal_code from weathersource.standard_tile.HISTORY_DAY hd where hd.country='US' and left(hd.postal_code,3) in (481,482);
+
+    select * from marketing.mailers.DETROIT_ZIPS;
+
+select * from  weathersource.standard_tile.HISTORY_DAY hd join marketing.mailers.DETROIT_ZIPS dz on hd.postal_code=dz.postal_code;
+
+
+--2023-08-17  ,  2025-08-17
+select min (date_valid_std),max (date_valid_std)  from  weathersource.standard_tile.HISTORY_DAY hd;
+
+--2025-08-17  ,  2025-09-01
+select min (date_valid_std),max (date_valid_std)  from  weathersource.standard_tile.FORECAST_DAY;
+
+
+/*
+2023-08-17	2025-08-16
+*/
+
+select min (date_valid_std),max (date_valid_std)  from  weathersource.standard_tile.HISTORY_DAY hd join marketing.mailers.DETROIT_ZIPS dz on hd.postal_code=dz.postal_code;
+
+
+/*
+2025-08-17	2025-09-01
+*/
+
+select min (date_valid_std),max (date_valid_std)  from  weathersource.standard_tile.FORECAST_DAY hd join marketing.mailers.DETROIT_ZIPS dz on hd.postal_code=dz.postal_code;
+
+
+select date_valid_std,  AVG_CLOUD_COVER_TOT_PCT   from  weathersource.standard_tile.FORECAST_DAY hd join marketing.mailers.DETROIT_ZIPS dz on hd.postal_code=dz.postal_code;
+
+select date_valid_std,  AVG(AVG_CLOUD_COVER_TOT_PCT)   from  weathersource.standard_tile.FORECAST_DAY hd join marketing.mailers.DETROIT_ZIPS dz on hd.postal_code=dz.postal_code
+group by date_valid_std 
+order by 2 asc;
+
+SHOW DATABASES;
+
+CREATE OR REPLACE DATABASE UTIL_DB;
+
+
+use role accountadmin;
+
+create or replace api integration dora_api_integration
+api_provider = aws_api_gateway
+api_aws_role_arn = 'arn:aws:iam::321463406630:role/snowflakeLearnerAssumedRole'
+enabled = true
+api_allowed_prefixes = ('https://awy6hshxy4.execute-api.us-west-2.amazonaws.com/dev/edu_dora');
+
+
+
+create or replace external function UTIL_DB.public.grader(
+      step varchar
+    , passed boolean
+    , actual integer
+    , expected integer
+    , description varchar)
+returns variant
+api_integration = dora_api_integration 
+context_headers = (current_timestamp, current_account, current_statement, current_account_name) 
+as 'https://awy6hshxy4.execute-api.us-west-2.amazonaws.com/dev/edu_dora/grader'
+; 
+
+use role accountadmin;
+use database UTIL_DB; 
+use schema public;
+
+
+select grader(step, (actual = expected), actual, expected, description) as graded_results from
+(SELECT 
+ 'DORA_IS_WORKING' as step
+ ,(select 123) as actual
+ ,123 as expected
+ ,'Dora is working!' as description
+);
+
+
+-- set your worksheet drop lists to the location of your GRADER function
+--DO NOT EDIT ANYTHING BELOW THIS LINE
+
+--THIS DORA CHECK MUST BE RUN IN THE ACME ACCOUNT!!!!!
+select grader(step, (actual = expected), actual, expected, description) as graded_results from (
+ SELECT 'CMCW10' as step
+ ,( select count(*)
+    from snowflake.account_usage.databases
+    where (database_name in ('WEATHERSOURCE','INTERNATIONAL_CURRENCIES')
+           and type = 'IMPORTED DATABASE'
+           and deleted is null)
+    or (database_name = 'MARKETING'
+          and type = 'STANDARD'
+          and deleted is null)
+   ) as actual
+ , 3 as expected
+ ,'ACME Account Set up nicely' as description
+); 
+
+/*
+WK05276  ..account locator 
+*/
+select current_account();
+
+
+-- set the worksheet drop lists to match the location of your GRADER function
+--DO NOT MAKE ANY CHANGES BELOW THIS LINE
+
+--RUN THIS DORA CHECK IN YOUR ACME ACCOUNT
+
+select grader(step, (actual = expected), actual, expected, description) as graded_results from (
+SELECT 
+  'CMCW11' as step
+ ,( select count(*) 
+   from MARKETING.MAILERS.DETROIT_ZIPS) as actual
+ , 9 as expected
+ ,'Detroit Zips' as description
+); 
+
+
+
+
+
