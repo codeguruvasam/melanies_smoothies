@@ -1,0 +1,442 @@
+use role accountadmin;
+
+select util_db.public.grader(step, (actual = expected), actual, expected, description) as graded_results from
+(SELECT 
+ 'DORA_IS_WORKING' as step
+ ,(select 123 ) as actual
+ ,123 as expected
+ ,'Dora is working!' as description
+); 
+
+
+SELECT
+  SNOWFLAKE.CORTEX.COMPLETE(
+    'deepseek-r1',
+    [{'role':'user','content':'what is your favorite color'}],
+    { }
+  );
+
+
+
+ 
+-- DO NOT EDIT ANYTHING BELOW THIS LINE
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+   SELECT 'DSCW01' as step 
+   ,( select  iff(count(*)>=5, 5, 0)
+     from (
+       select model_name
+       from SNOWFLAKE.ACCOUNT_USAGE.CORTEX_FUNCTIONS_USAGE_HISTORY
+       where function_name = 'COMPLETE'
+       group by model_name
+          )
+     ) as actual 
+   , 5 as expected 
+   ,'Used Different models when exploring Cortex Playground' as description
+); 
+
+
+select *
+       from SNOWFLAKE.ACCOUNT_USAGE.CORTEX_FUNCTIONS_USAGE_HISTORY
+       where function_name = 'COMPLETE'
+    ;
+
+
+select  count(*)
+     from (
+       select model_name
+       from SNOWFLAKE.ACCOUNT_USAGE.CORTEX_FUNCTIONS_USAGE_HISTORY
+       where function_name = 'COMPLETE'
+       group by model_name
+          );
+          
+
+     
+
+    SELECT
+  SNOWFLAKE.CORTEX.COMPLETE(
+    'deepseek-r1',
+    [{'role':'user','content':'what is your favorite color'}],
+    { }
+  );
+
+--claude-3-5-sonnet mistral-large2 mistral-7b llama3.2-1b llama3.2-3b llama3.3-70b snowflake-arctic snowflake-llama-3.1-405b snowflake-llama-3.3-70b
+  
+    SELECT
+  SNOWFLAKE.CORTEX.COMPLETE(
+    'llama3.2-1b',
+    [{'role':'user','content':'what is your favorite color'}],
+    { }
+  );
+
+
+  
+SELECT
+  SNOWFLAKE.CORTEX.COMPLETE(
+    'snowflake-llama-3.3-70b',
+    [{'role':'user','content':'top job '}],    { }
+  );
+
+
+
+
+create or replace table camillas_db.cortex_analyst.camillas_teams
+( 
+    team_id number,
+    team_name varchar(50),
+    kit_color varchar(20),
+    coach varchar(100),
+    emoji_symbol varchar(5)
+);
+
+insert into camillas_db.cortex_analyst.camillas_teams
+values
+(1,'Blue Sky Strikers','cerulean','Stormy McLeod', '💙☁️⚡️'),
+(2,'Pitch Blazing Bombers','emerald','Kelly Groen','🌱🔥💣' ),
+(3,'Solar Flashing Flares','marigold','Ravi Bahsin', '☀️🔥'),
+(4,'Terracotta Tirade','terracotta','Clay Skála', '🪴💪');
+
+
+create or replace table camillas_db.cortex_analyst.match_locations
+(
+ location_id number, 
+ location_name varchar(50)
+);
+
+insert into camillas_db.cortex_analyst.match_locations
+values 
+(1, 'Main Street Park - Pitch 1'),
+(2, 'Main Street Park - Pitch 2'),
+(3, 'Central Park - North Pitch'),
+(4, 'Central Park - South Pitch');
+
+
+
+create or replace table camillas_db.cortex_analyst.match_schedule
+( 
+    home_team_id number,
+    away_team_id number,
+    location_id number,
+    match_datetime timestamp_ntz  
+);
+
+insert into camillas_db.cortex_analyst.match_scheduleCAMILLAS_DB
+values
+(1,2,1,'2025-06-07 08:00:00'),
+(3,4,2,'2025-06-07 08:00:00'),
+(2,3,3,'2025-06-07 12:00:00'),
+(1,4,4,'2025-06-07 12:00:00'),
+(1,3,1,'2025-06-07 16:00:00'),
+(2,4,2,'2025-06-07 16:00:00')
+;
+
+
+
+-- Set your worksheet drop lists
+--This DORA Check Requires that you RUN two Statements, one right after the other
+list @camillas_db.cortex_analyst.cortex_analyst_model_stage;
+
+--the above command puts information into memory that can be accessed using result_scan(last_query_id())
+-- If you have to run this check more than once, always run the LIST command immediately prior
+select grader(step, (actual = expected), actual, expected, description) as graded_results from (
+ SELECT 'DSCW02' as step
+ ,( select IFF(count(*)>0,1,0) 
+    from table(result_scan(last_query_id())) 
+    where "name" = 'cortex_analyst_model_stage/CAMILLAS_JUNE_TOURNAMENT.yaml') as actual
+ , 1 as expected
+ ,'Semantic Model Complete' as description
+); 
+
+
+create or replace table camillas_db.forecasting.practice_stats (
+	practice_date timestamp_ntz,
+	goals_scored number,
+	goals_attempted number
+);
+
+list @camillas_db.forecasting.CAMILLA_DATA_FILES;
+
+
+create or replace file format camillas_db.forecasting.cam_file_format_1
+FIELD_DELIMITER = ','
+RECORD_DELIMITER = '\n';
+TRIM_SPACE=TRUE;
+
+create or replace file format camillas_db.forecasting.cam_file_format_1
+TYPE = CSV
+FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+SKIP_HEADER = 1
+FIELD_DELIMITER = ',' ;
+
+
+
+SELECT $1 FROM @camillas_db.forecasting.CAMILLA_DATA_FILES
+(FILE_FORMAT => camillas_db.forecasting.cam_file_format_1);
+
+copy into camillas_db.forecasting.practice_stats from @camillas_db.forecasting.CAMILLA_DATA_FILES
+file_format=(format_name=cam_file_format_1);
+
+select * from camillas_db.forecasting.practice_stats;
+
+select min(practice_date) from camillas_db.forecasting.practice_stats;
+
+select max(practice_date) from camillas_db.forecasting.practice_stats;
+
+
+-- make a view that uses data from march to july for training the model 
+create or replace view camillas_db.forecasting.train_model_practice_data(
+	  practice_date,
+	  goals_attempted,
+	  goals_scored
+) as
+  select 
+    practice_date, 
+    goals_attempted,
+    goals_scored
+  from camillas_db.forecasting.practice_stats
+  where practice_date < '2025-07-01';
+
+
+-- make a view that uses data from july forward for validating the model
+create or replace view camillas_db.forecasting.validate_model_practice_data(
+	   practice_date,
+	   goals_attempted,
+	   goals_scored
+) as
+  select 
+    practice_date, 
+    goals_attempted,
+    goals_scored
+  from camillas_db.forecasting.practice_stats
+  where practice_date >= '2025-07-01';
+
+
+  CREATE SNOWFLAKE.ML.FORECAST camillas_practice_goal_forecasting(
+    INPUT_DATA => SYSTEM$REFERENCE('VIEW', 'TRAIN_MODEL_PRACTICE_DATA'),
+    TIMESTAMP_COLNAME => 'PRACTICE_DATE',
+    TARGET_COLNAME => 'GOALS_SCORED'
+);
+
+
+BEGIN
+    -- This is the step that creates your predictions.
+    CALL camillas_practice_goal_forecasting!FORECAST(
+        INPUT_DATA => SYSTEM$REFERENCE('VIEW', 'VALIDATE_MODEL_PRACTICE_DATA'),
+        TIMESTAMP_COLNAME => 'PRACTICE_DATE',
+        -- Here we set your prediction interval.
+        CONFIG_OBJECT => {'prediction_interval': 0.95}
+    );
+    -- These steps store your predictions to a table.
+    LET x := SQLID;
+    CREATE TABLE first_goals_forecast AS SELECT * FROM TABLE(RESULT_SCAN(:x));
+END;
+
+
+--Running line 50 of the code is optional.
+SELECT * FROM first_goals_forecast;
+
+
+-- Union your predictions with your historical data, then view the results in a chart.
+SELECT PRACTICE_DATE, GOALS_SCORED AS actual, NULL AS forecast, NULL AS lower_bound, NULL AS upper_bound
+    FROM TRAIN_MODEL_PRACTICE_DATA
+UNION ALL
+SELECT ts as PRACTICE_DATE, NULL AS actual, forecast, lower_bound, upper_bound
+    FROM first_goals_forecast;
+
+
+
+-- Set your worksheet drop lists
+-- DO NOT EDIT ANYTHING BELOW THIS LINE
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+   SELECT 'DSCW03' as step 
+   ,( select  round(count(*)/iff(count(*)=0,1,count(*)),0) as tally
+      from snowflake.account_usage.query_history
+      where query_text like '%CREATE SNOWFLAKE.ML.FORECAST camillas_practice_goal_forecasting%'
+      and execution_status = 'SUCCESS'
+     ) as actual 
+   , 1 as expected 
+   ,'Created Forecast Model' as description
+);     
+
+SELECT $1, $2, $3, $4, $5
+FROM @<stage_name>/<file_name>
+(FILE_FORMAT => <file_format_name>);
+
+SELECT $1, $2, $3, $4, $5
+FROM @SMOOTHIES.PUBLIC.MY_UPLOADED_FILES
+(FILE_FORMAT => smoothies.public.two_headerrow_pct_delim);
+
+
+
+create or replace view camillas_db.forecasting.train_2_model_practice_data(
+	practice_date,
+	day_of_week,
+	goals_attempted,
+	goals_scored
+) as
+select 
+practice_date,
+dayname(practice_date) as day_of_week,
+goals_attempted,
+goals_scored
+from camillas_db.forecasting.practice_stats
+where practice_date < '2025-07-01';
+
+-- make a view that uses data from july forward for validating the model
+create or replace view camillas_db.forecasting.validate_2_model_practice_data(
+	   practice_date,
+	   goals_attempted,
+	   goals_scored
+) as
+  select 
+    practice_date, 
+    goals_attempted,
+    goals_scored
+  from camillas_db.forecasting.practice_stats
+  where practice_date >= '2025-07-01';
+
+select * from camillas_db.forecasting.validate_2_model_practice_data;
+
+
+DROP SNOWFLAKE.ML.FORECAST camillas_practice_goal_4cast_w_dayofweek ;
+
+
+-----------------------------------------------------------
+-- CREATE PREDICTIONS
+-----------------------------------------------------------
+-- Create your model.
+CREATE SNOWFLAKE.ML.FORECAST camillas_practice_goal_4cast_w_dayofweek(
+    INPUT_DATA => SYSTEM$REFERENCE('VIEW', 'TRAIN_2_MODEL_PRACTICE_DATA'),
+    SERIES_COLNAME => 'DAY_OF_WEEK',
+    TIMESTAMP_COLNAME => 'PRACTICE_DATE',
+    TARGET_COLNAME => 'GOALS_SCORED',
+    CONFIG_OBJECT => { 'ON_ERROR': 'SKIP' }
+);
+
+-- Generate predictions and store the results to a table.
+BEGIN
+    -- This is the step that creates your predictions.
+    CALL camillas_practice_goal_4cast_w_dayofweek!FORECAST(
+        INPUT_DATA => SYSTEM$REFERENCE('VIEW', 'VALIDATE_2_MODEL_PRACTICE_DATA'),
+        SERIES_COLNAME => 'GOALS_SCORED',
+        TIMESTAMP_COLNAME => 'PRACTICE_DATE',
+        -- Here we set your prediction interval.
+        CONFIG_OBJECT => {'prediction_interval': 0.95}
+    );
+    -- These steps store your predictions to a table.
+    LET x := SQLID;
+    CREATE OR REPLACE TABLE second_goals_forecast AS SELECT * FROM TABLE(RESULT_SCAN(:x));
+END;
+
+-- View your predictions.
+SELECT * FROM second_goals_forecast;
+
+
+
+select practice_date, goals_scored as actual, null as forecast_1, NULL as forecast_2
+    from train_2_model_practice_data
+UNION ALL
+select ts as practice_date, NULL as actual, forecast as forecast_1, NULL as forecast_2
+    from first_goals_forecast
+UNION ALL    
+select ts as practice_date, NULL as actual, null as forecast_1, forecast as forecast_2
+    from second_goals_forecast;
+
+
+select practice_date, goals_scored as actual, null as forecast_1, NULL as forecast_2
+    from validate_2_model_practice_data
+UNION ALL    
+select ts as practice_date, NULL as actual, null as forecast_1, forecast as forecast_2
+    from second_goals_forecast;    
+
+
+-- Set your worksheet drop lists
+-- DO NOT EDIT ANYTHING BELOW THIS LINE
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+   SELECT 'DSCW04' as step 
+   ,( select  round(count(*)/iff(count(*)=0,1,count(*)),0) as tally
+      from snowflake.account_usage.query_history
+      where query_text like '%CREATE SNOWFLAKE.ML.FORECAST camillas_practice_goal_4cast%'
+      and execution_status = 'SUCCESS'
+     ) as actual 
+   , 1 as expected 
+   ,'Improved Forecast Model' as description
+);   
+
+
+
+create or replace table camillas_db.classification.train_player_position (
+	player_id number(38,0),
+	position_code varchar(1),
+	game number(38,0),
+	minutes_played number(38,0),
+	goals number(38,0),
+	assists number(38,0),
+	shots number(38,0),
+	passes number(38,0),
+	sprint_distance number(38,0),
+	saves number(38,0),
+	dribbles number(38,0),
+	blocks number(38,0),
+	claims number(38,0)
+);
+
+create or replace file format camillas_db.classification.cam_file_format_2
+TYPE = CSV
+FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+SKIP_HEADER = 1
+FIELD_DELIMITER = ',' ;
+
+
+
+SELECT $1 FROM @camillas_db.classification.PLAYER_DATA_FILES
+(FILE_FORMAT => camillas_db.classification.cam_file_format_2);
+
+copy into camillas_db.classification.train_player_position from @camillas_db.classification.PLAYER_DATA_FILES
+file_format=(format_name=cam_file_format_2);
+
+select * from camillas_db.classification.train_player_position;
+
+
+create or replace table camillas_db.classification.unclassified_player_positions (
+	player_id number(38,0),
+	game_id number(38,0),
+	mins_played number(38,0),
+	goals_made number(38,0),
+	assists number(38,0),
+	shots number(38,0),
+	passes number(38,0),
+	sprint_distance number(38,0),
+	saves number(38,0),
+	dribbles number(38,0),
+	blocks number(38,0),
+	claims number(38,0)
+);
+
+--unclassified_player_data.csv
+
+SELECT $1 FROM @camillas_db.classification.PLAYER_DATA_FILES/unclassified_player_data.csv
+(FILE_FORMAT => camillas_db.classification.cam_file_format_2);
+
+copy into camillas_db.classification.unclassified_player_positions from @camillas_db.classification.PLAYER_DATA_FILES/unclassified_player_data.csv
+file_format=(format_name=cam_file_format_2);
+
+select * from camillas_db.classification.unclassified_player_positions ;
+
+--run generated feature classfication 
+
+
+-- Set your worksheet drop lists
+--This DORA Check Requires that you RUN two Statements, one right after the other
+call camillas_db.classification.player_position_classification!SHOW_FEATURE_IMPORTANCE();
+
+--the above command puts information into memory that can be accessed using result_scan(last_query_id())
+-- If you have to run this check more than once, always run the LIST command immediately prior
+select grader(step, (actual = expected), actual, expected, description) as graded_results from (
+ SELECT 'DSCW05' as step
+ ,( select count(*) from table(result_scan(last_query_id())) where FEATURE in ('PASSES','MINUTES_PLAYED','DRIBBLES','ASSISTS', 'SAVES', 'CLAIMS')
+  ) as actual
+ , 6 as expected
+ ,'Classification Model Complete' as description
+); 
+
+
